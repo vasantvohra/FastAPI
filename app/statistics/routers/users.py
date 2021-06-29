@@ -1,13 +1,13 @@
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, APIRouter, Depends, status
-from user import database, schemas, models
-from user.security import get_password_hash, verify_user
+from fastapi import APIRouter, HTTPException, Depends, status
+
+from app.core.security import get_password_hash, verify_user
+from app.db import session
+from app.statistics import schemas, models
 
 router = APIRouter(prefix="/user", tags=['Users'])
-
-get_db = database.get_db
 
 
 def create_user_account(request, db):
@@ -20,7 +20,7 @@ def create_user_account(request, db):
 
 
 @router.post('/create/', response_model=schemas.ShowUser)
-def create_user(request: schemas.User, db: Session = Depends(get_db),
+def create_user(request: schemas.User, db: Session = Depends(session.get_db),
                 current_user: schemas.User = Depends(verify_user)):
     """Creates a new user account."""
     if current_user.is_admin:
@@ -29,7 +29,7 @@ def create_user(request: schemas.User, db: Session = Depends(get_db),
 
 
 @router.put('/update/{email}', response_model=schemas.ShowUser)
-def update_user(email: str, request: schemas.Login, db: Session = Depends(get_db),
+def update_user(email: str, request: schemas.Login, db: Session = Depends(session.get_db),
                 current_user: schemas.User = Depends(verify_user)):
     """Updates the email or password of the given user email."""
     user = db.query(models.User).filter(models.User.email == email).first()
@@ -48,7 +48,7 @@ def update_user(email: str, request: schemas.Login, db: Session = Depends(get_db
 
 
 @router.delete('/delete/')
-def delete_user(email: Optional[str] = None, db: Session = Depends(get_db),
+def delete_user(email: Optional[str] = None, db: Session = Depends(session.get_db),
                 current_user: schemas.User = Depends(verify_user)):
     """
     Deletes a user account.
@@ -68,7 +68,7 @@ def delete_user(email: Optional[str] = None, db: Session = Depends(get_db),
 
 
 @router.get('/{email}/', response_model=schemas.ShowUser)
-def get_user(email: str, db: Session = Depends(get_db),
+def get_user(email: str, db: Session = Depends(session.get_db),
              current_user: schemas.User = Depends(verify_user)):
     """Fetch the user with given email."""
     if current_user.is_admin:

@@ -1,29 +1,12 @@
-import logging
 from fastapi import FastAPI
-
-from user import models, schemas
-from user.database import engine, SessionLocal
 import uvicorn
+from app.core.config import EMAIL, PASSWORD
+from app.db.session import SessionLocal
+from app.statistics.routers.api import api_router
+from app.db.init_db import init_db
 
-from user.routers.api import api_router
-from user.routers.user import create_user_account
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-app = FastAPI(title="RESt APIs")
-logger.info("Creating initial data")
-# Automatically creates Tables
-models.Base.metadata.create_all(engine)
-db = SessionLocal()
-user = db.query(models.User).first()
-if not user:
-    email = 'admin'
-    password = 'password'
-    logger.info(f"Creating Admin account with email '{email}' and password '{password}'")
-    admin_user = schemas.User(email=email, password=password, is_admin=True)
-    create_user_account(admin_user, db)
-logger.info("Creating endpoints")
+app = FastAPI(title="RESt APIs", openapi_url="/openapi.json")
+init_db(SessionLocal(), EMAIL, PASSWORD)
 app.include_router(api_router)
 
 if __name__ == '__main__':

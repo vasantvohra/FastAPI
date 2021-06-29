@@ -1,24 +1,19 @@
-import secrets
 from datetime import datetime, timedelta
 from typing import Any, Union
-
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from user import schemas
-from user.database import get_db
-from user.models import User
-
-SECRET_KEY: str = secrets.token_urlsafe(32)
-ALGORITHM = "HS256"
-# 60 minutes * 24 hours * 8 days = 8 days
-ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY
+from app.db import session
+from app.statistics import schemas, models
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -49,12 +44,12 @@ def verify_token(token:str, credentials_exception, db):
         if email is None:
             raise credentials_exception
         token_data = schemas.TokenData(email=email)
-        return db.query(User).filter(User.id == user_id).first()
+        return db.query(models.User).filter(models.User.id == user_id).first()
     except JWTError:
         raise credentials_exception
 
 
-def verify_user(data: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def verify_user(data: str = Depends(oauth2_scheme), db: Session = Depends(session.get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
